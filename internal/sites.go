@@ -19,11 +19,12 @@ func ProcessSites(hosts *Hosts, sources *Sources, state *State, numFetches uint)
 	defer pool.Release()
 	for category, sites := range sources.Sources() {
 		for x := range sites {
+			site := sites[x]
 			err := pool.Submit(func() {
 				processSiteWithOptions(processSiteOptions{
 					hosts: hosts,
 					state: state,
-					site:  &sites[x],
+					site:  &site,
 					wg:    &wg,
 				})
 			})
@@ -56,17 +57,17 @@ func processSiteWithOptions(options processSiteOptions) {
 	}
 }
 
-func processSite(hosts *Hosts, state *State, siteUrl *string) error {
+func processSite(hosts *Hosts, state *State, siteURL *string) error {
 	var (
 		err     error
 		fetched []string
 	)
 
 	log := GetLogger("processSite")
-	if siteUrl == nil {
+	if siteURL == nil {
 		return errors.New("unexpected nil site url")
 	}
-	site := *siteUrl
+	site := *siteURL
 	siteLocalState := state.Get(site)
 	// get the state of the resource
 	siteState, err := DefaultFetch.ResourceState(site)
@@ -74,13 +75,6 @@ func processSite(hosts *Hosts, state *State, siteUrl *string) error {
 		log.Printf("error getting resource state of site: %s\n", err)
 		return err
 	}
-	// log.Printf(
-	//	"localETag=%s, siteETag=%s; localLastModified=%s, siteLastModified=%s\n",
-	//	siteLocalState.ETag,
-	//	siteState.ETag,
-	//	siteLocalState.LastModified.String(),
-	//	siteState.LastModified.String(),
-	// )
 	cacheID := HashURL(strings.ToLower(site))
 	if siteLocalState.IsETagStale(siteState.ETag) || siteLocalState.IsLastModifiedPast(siteState.LastModified) {
 		log.Printf("fetching new hosts from %s\n", site)
@@ -97,9 +91,7 @@ func processSite(hosts *Hosts, state *State, siteUrl *string) error {
 			log.Printf("error saving hosts to cache: %s\n", err)
 		}
 		hosts.Add(fetched)
-		siteLocalState.ETag = siteState.ETag
-		siteLocalState.LastModified = siteState.LastModified
-		state.Set(site, siteLocalState)
+		state.Set(site, siteState)
 	} else {
 		// load cached hosts and add to list
 		log.Printf("loading hosts from cache for %s\n", site)
