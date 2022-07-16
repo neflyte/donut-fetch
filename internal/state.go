@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 )
 
 const (
@@ -14,9 +15,15 @@ const (
 	stateDirMode  = 0750
 )
 
+var (
+	statelock = sync.RWMutex{}
+)
+
 type State map[string]ResourceState
 
 func (st *State) Load() error {
+	statelock.Lock()
+	defer statelock.Unlock()
 	log := GetLogger("Load")
 	confDir, err := os.UserConfigDir()
 	if err != nil {
@@ -47,6 +54,8 @@ func (st *State) Load() error {
 }
 
 func (st *State) Save() error {
+	statelock.RLock()
+	defer statelock.RUnlock()
 	log := GetLogger("Save")
 	confDir, err := os.UserConfigDir()
 	if err != nil {
@@ -74,6 +83,8 @@ func (st *State) Save() error {
 }
 
 func (st *State) Get(url string) ResourceState {
+	statelock.RLock()
+	defer statelock.RUnlock()
 	s, ok := (*st)[HashURL(strings.ToLower(url))]
 	if !ok {
 		return ResourceState{}
@@ -82,5 +93,7 @@ func (st *State) Get(url string) ResourceState {
 }
 
 func (st *State) Set(url string, newState ResourceState) {
+	statelock.Lock()
+	defer statelock.Unlock()
 	(*st)[HashURL(strings.ToLower(url))] = newState
 }

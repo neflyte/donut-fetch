@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sync"
 
 	"golang.org/x/exp/maps"
 )
@@ -18,27 +19,37 @@ const (
 
 type Hosts struct {
 	hostnames map[string]bool
+	maplock   sync.RWMutex
 }
 
 func NewHosts() *Hosts {
 	return &Hosts{
 		hostnames: make(map[string]bool),
+		maplock:   sync.RWMutex{},
 	}
 }
 
 func (h *Hosts) Clear() {
+	h.maplock.Lock()
+	defer h.maplock.Unlock()
 	maps.Clear(h.hostnames)
 }
 
 func (h *Hosts) Len() uint {
+	h.maplock.RLock()
+	defer h.maplock.RUnlock()
 	return uint(len(h.hostnames))
 }
 
 func (h *Hosts) Hosts() []string {
+	h.maplock.RLock()
+	defer h.maplock.RUnlock()
 	return maps.Keys(h.hostnames)
 }
 
 func (h *Hosts) Add(newHosts []string) {
+	h.maplock.Lock()
+	defer h.maplock.Unlock()
 	for x := range newHosts {
 		h.hostnames[newHosts[x]] = true
 	}
