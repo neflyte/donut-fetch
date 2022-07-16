@@ -26,11 +26,13 @@ var (
 	}
 	fetchTimeout uint
 	outputFile   string
+	numFetches   uint
 )
 
 func init() {
 	rootCmd.Flags().UintVar(&fetchTimeout, "timeout", defaultFetchTimeout, "connection timeout in seconds")
 	rootCmd.Flags().StringVar(&outputFile, "output", "", "output file; output to console if not specified")
+	rootCmd.Flags().UintVar(&numFetches, "fetches", 5, "the number of simultaneous downloads")
 	rootCmd.SetVersionTemplate(fmt.Sprintf("donut-fetch %s", AppVersion))
 }
 
@@ -54,7 +56,7 @@ func doRun(_ *cobra.Command, args []string) error {
 		return err
 	}
 	hosts := internal.NewHosts()
-	err = internal.ProcessSites(hosts, sources, &state)
+	err = internal.ProcessSites(hosts, sources, &state, numFetches)
 	if err != nil {
 		log.Printf("error processing sites: %s\n", err)
 		return err

@@ -11,18 +11,12 @@ var (
 	DefaultFetch = NewFetch()
 )
 
-type Fetch interface {
-	SetTimeout(timeout uint)
-	Hosts(url string) ([]string, error)
-	ResourceState(url string) (ResourceState, error)
-}
-
-type fetch struct {
+type Fetch struct {
 	client http.Client
 }
 
-func NewFetch() Fetch {
-	return &fetch{
+func NewFetch() *Fetch {
+	return &Fetch{
 		client: http.Client{
 			Transport: &http.Transport{
 				MaxIdleConnsPerHost: -1,
@@ -32,11 +26,11 @@ func NewFetch() Fetch {
 	}
 }
 
-func (f *fetch) SetTimeout(timeout uint) {
+func (f *Fetch) SetTimeout(timeout uint) {
 	f.client.Timeout = time.Duration(timeout) * time.Second
 }
 
-func (f *fetch) Hosts(url string) ([]string, error) {
+func (f *Fetch) Hosts(url string) ([]string, error) {
 	log := GetLogger("Hosts")
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -82,7 +76,7 @@ func (f *fetch) Hosts(url string) ([]string, error) {
 	return hosts, nil
 }
 
-func (f *fetch) ResourceState(url string) (ResourceState, error) {
+func (f *Fetch) ResourceState(url string) (ResourceState, error) {
 	log := GetLogger("LastModified")
 	rState := ResourceState{}
 	req, err := http.NewRequest(http.MethodHead, url, nil)

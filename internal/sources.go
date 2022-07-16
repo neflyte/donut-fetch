@@ -3,6 +3,9 @@ package internal
 import (
 	"encoding/json"
 	"os"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Sources struct {
@@ -26,9 +29,14 @@ func (s *Sources) FromFile(filename string) error {
 		log.Printf("error reading file %s: %s\n", filename, err)
 		return err
 	}
-	err = json.Unmarshal(fileBytes, &s.sourcesMap)
+	filenameLower := strings.ToLower(filename)
+	if strings.HasSuffix(filenameLower, ".yaml") || strings.HasSuffix(filenameLower, ".yml") {
+		err = yaml.Unmarshal(fileBytes, &s.sourcesMap)
+	} else {
+		err = json.Unmarshal(fileBytes, &s.sourcesMap)
+	}
 	if err != nil {
-		log.Printf("error unmarshaling sources from JSON: %s\n", err)
+		log.Printf("error unmarshaling sources: %s\n", err)
 		return err
 	}
 	return nil

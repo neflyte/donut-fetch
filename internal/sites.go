@@ -1,26 +1,72 @@
 package internal
 
-func ProcessSites(hosts *Hosts, sources *Sources, state *State) error {
+import (
+	"errors"
+	"strings"
+	"sync"
+
+	"github.com/panjf2000/ants/v2"
+)
+
+func ProcessSites(hosts *Hosts, sources *Sources, state *State, numFetches uint) error {
+	wg := sync.WaitGroup{}
 	log := GetLogger("ProcessSites")
+	pool, err := ants.NewPool(int(numFetches))
+	if err != nil {
+		log.Printf("error creating new pool: %s\n", err)
+		return err
+	}
+	defer pool.Release()
 	for category, sites := range sources.Sources() {
 		for x := range sites {
-			err := processSite(hosts, state, category, sites[x])
+			err := pool.Submit(func() {
+				processSiteWithOptions(processSiteOptions{
+					hosts: hosts,
+					state: state,
+					site:  &sites[x],
+					wg:    &wg,
+				})
+			})
 			if err != nil {
 				log.Printf("error processing site %s of category %s: %s\n", sites[x], category, err)
 				continue
 			}
+			wg.Add(1)
 		}
 	}
+	log.Println("waiting for processing to complete")
+	wg.Wait()
+	log.Println("processing completed")
 	return nil
 }
 
-func processSite(hosts *Hosts, state *State, category, site string) error {
+type processSiteOptions struct {
+	hosts *Hosts
+	state *State
+	site  *string
+	wg    *sync.WaitGroup
+}
+
+func processSiteWithOptions(options processSiteOptions) {
+	log := GetLogger("processSiteWithOptions")
+	defer options.wg.Done()
+	err := processSite(options.hosts, options.state, options.site)
+	if err != nil {
+		log.Printf("error processing site %s: %s\n", *options.site, err)
+	}
+}
+
+func processSite(hosts *Hosts, state *State, siteUrl *string) error {
 	var (
 		err     error
 		fetched []string
 	)
 
 	log := GetLogger("processSite")
+	if siteUrl == nil {
+		return errors.New("unexpected nil site url")
+	}
+	site := *siteUrl
 	siteLocalState := state.Get(site)
 	// get the state of the resource
 	siteState, err := DefaultFetch.ResourceState(site)
@@ -35,7 +81,7 @@ func processSite(hosts *Hosts, state *State, category, site string) error {
 	//	siteLocalState.LastModified.String(),
 	//	siteState.LastModified.String(),
 	// )
-	cacheID := HashURL(site)
+	cacheID := HashURL(strings.ToLower(site))
 	if siteLocalState.IsETagStale(siteState.ETag) || siteLocalState.IsLastModifiedPast(siteState.LastModified) {
 		log.Printf("fetching new hosts from %s\n", site)
 		fetched, err = DefaultFetch.Hosts(site)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -73,7 +74,7 @@ func (st *State) Save() error {
 }
 
 func (st *State) Get(url string) ResourceState {
-	s, ok := (*st)[HashURL(url)]
+	s, ok := (*st)[HashURL(strings.ToLower(url))]
 	if !ok {
 		return ResourceState{}
 	}
@@ -81,5 +82,5 @@ func (st *State) Get(url string) ResourceState {
 }
 
 func (st *State) Set(url string, newState ResourceState) {
-	(*st)[HashURL(url)] = newState
+	(*st)[HashURL(strings.ToLower(url))] = newState
 }
