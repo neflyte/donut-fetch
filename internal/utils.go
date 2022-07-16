@@ -7,6 +7,7 @@ const (
 )
 
 var (
+	Debug    = false
 	uuidV5NS = uuid.Must(uuid.FromString(uuidV5Seed))
 )
 

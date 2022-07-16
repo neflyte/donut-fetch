@@ -35,9 +35,13 @@ func ProcessSites(hosts *Hosts, sources *Sources, state *State, numFetches uint)
 			wg.Add(1)
 		}
 	}
-	log.Println("waiting for processing to complete")
+	if Debug {
+		log.Println("waiting for processing to complete")
+	}
 	wg.Wait()
-	log.Println("processing completed")
+	if Debug {
+		log.Println("processing completed")
+	}
 	return nil
 }
 
@@ -68,6 +72,7 @@ func processSite(hosts *Hosts, state *State, siteURL *string) error {
 		return errors.New("unexpected nil site url")
 	}
 	site := *siteURL
+	log.Printf("Processing site %s\n", site)
 	siteLocalState := state.Get(site)
 	// get the state of the resource
 	siteState, err := DefaultFetch.ResourceState(site)
@@ -77,7 +82,9 @@ func processSite(hosts *Hosts, state *State, siteURL *string) error {
 	}
 	cacheID := HashURL(strings.ToLower(site))
 	if siteLocalState.IsETagStale(siteState.ETag) || siteLocalState.IsLastModifiedPast(siteState.LastModified) {
-		log.Printf("fetching new hosts from %s\n", site)
+		if Debug {
+			log.Printf("fetching new hosts from %s\n", site)
+		}
 		fetched, err = DefaultFetch.Hosts(site)
 		if err != nil {
 			log.Printf("error fetching site %s: %s\n", site, err)
@@ -94,7 +101,9 @@ func processSite(hosts *Hosts, state *State, siteURL *string) error {
 		state.Set(site, siteState)
 	} else {
 		// load cached hosts and add to list
-		log.Printf("loading hosts from cache for %s\n", site)
+		if Debug {
+			log.Printf("loading hosts from cache for %s\n", site)
+		}
 		cachedHosts := NewHosts()
 		err = cachedHosts.LoadCache(cacheID)
 		if err != nil {

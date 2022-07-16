@@ -9,6 +9,7 @@ import (
 
 const (
 	defaultFetchTimeout = uint(5)
+	defaultNumFetches   = 5
 )
 
 var (
@@ -17,12 +18,12 @@ var (
 
 	// rootCmd is the application's root command
 	rootCmd = &cobra.Command{
-		Use:   "donut-fetch <sources.json>",
-		Short: "Fetch hostname sources for donutdns",
-		// TODO: Fetch, if newer, each hostname list...
-		Long: "Fetch each hostname list from sources.json and combine into a single list",
-		Args: cobra.ExactArgs(1),
-		RunE: doRun,
+		Version: AppVersion,
+		Use:     "donut-fetch <sources.json|yaml>",
+		Short:   "Fetch hostname sources for donutdns",
+		Long:    "Fetch, if newer, each hostname list from the sources file and combine into a single list",
+		Args:    cobra.ExactArgs(1),
+		RunE:    doRun,
 	}
 	fetchTimeout uint
 	outputFile   string
@@ -32,8 +33,9 @@ var (
 func init() {
 	rootCmd.Flags().UintVar(&fetchTimeout, "timeout", defaultFetchTimeout, "connection timeout in seconds")
 	rootCmd.Flags().StringVar(&outputFile, "output", "", "output file; output to console if not specified")
-	rootCmd.Flags().UintVar(&numFetches, "fetches", 5, "the number of simultaneous downloads")
-	rootCmd.SetVersionTemplate(fmt.Sprintf("donut-fetch %s", AppVersion))
+	rootCmd.Flags().UintVar(&numFetches, "fetches", defaultNumFetches, "the number of simultaneous downloads")
+	rootCmd.Flags().BoolVar(&internal.Debug, "debug", false, "enable debug logging")
+	rootCmd.SetVersionTemplate(fmt.Sprintf("donut-fetch %s\n", AppVersion))
 }
 
 func Execute() error {
@@ -71,8 +73,10 @@ func doRun(_ *cobra.Command, args []string) error {
 			log.Printf("error dumping hosts to file %s: %s\n", outputFile, err)
 			return err
 		}
+		log.Printf("Wrote %d hosts to file %s\n", hosts.Len(), outputFile)
 	} else {
 		hosts.DumpToConsole()
 	}
+	log.Println("done.")
 	return nil
 }

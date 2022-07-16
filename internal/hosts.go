@@ -114,7 +114,9 @@ func (h *Hosts) LoadCache(cacheID string) error {
 		return err
 	}
 	h.Add(cacheHosts)
-	log.Printf("loaded %d hosts from cache file %s\n", len(cacheHosts), cacheFile)
+	if Debug {
+		log.Printf("loaded %d hosts from cache file %s\n", len(cacheHosts), cacheFile)
+	}
 	return nil
 }
 
@@ -142,6 +144,8 @@ func (h *Hosts) SaveCache(cacheID string) error {
 		log.Printf("error writing cache file %s: %s\n", cacheFile, err)
 		return err
 	}
-	log.Printf("wrote %d hosts to cache file %s\n", h.Len(), cacheFile)
+	if Debug {
+		log.Printf("wrote %d hosts to cache file %s\n", h.Len(), cacheFile)
+	}
 	return nil
 }

@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	lastModifiedHeader = "Last-Modified"
+	etagHeader         = "ETag"
+)
+
 var (
 	DefaultFetch = NewFetch()
 )
@@ -95,16 +100,18 @@ func (f *Fetch) ResourceState(url string) (ResourceState, error) {
 			log.Printf("error closing response body: %s\n", err)
 		}
 	}()
-	lastModHeader := res.Header.Get("Last-Modified")
+	lastModHeader := res.Header.Get(lastModifiedHeader)
 	if lastModHeader != "" {
 		lastModTime, err := time.Parse(time.RFC1123, lastModHeader)
 		if err != nil {
 			log.Printf("error parsing last-modified header: %s\n", err)
 		} else {
 			rState.LastModified = lastModTime
-			log.Printf("lastMod=%s for url %s\n", lastModTime.String(), url)
+			if Debug {
+				log.Printf("lastMod=%s for url %s\n", lastModTime.String(), url)
+			}
 		}
 	}
-	rState.ETag = res.Header.Get("ETag")
+	rState.ETag = res.Header.Get(etagHeader)
 	return rState, nil
 }

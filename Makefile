@@ -1,5 +1,7 @@
+VERSION=$(shell cat VERSION)
+
 donut-fetch:
-	CGO_ENABLED=0 go build -ldflags '-s -w' ./cmd/donut-fetch
+	CGO_ENABLED=0 go build -ldflags "-s -w -X 'github.com/neflyte/donut-fetch/cmd/donut-fetch/cmd.AppVersion=$(VERSION)'" ./cmd/donut-fetch
 .PHONY: donut-fetch
 
 clean-cache:
